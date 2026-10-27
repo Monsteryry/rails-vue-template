@@ -34,12 +34,14 @@ x-app: &app
 
 services:
   db:
-    image: postgres:17
+    image: postgres:18
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # Postgres 18+ keeps data in /var/lib/postgresql/<major>/docker. A new major version
+      # can't open an older one's data, so the volume name carries the version.
+      - pgdata18:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -103,7 +105,7 @@ services:
         condition: service_completed_successfully
 
 volumes:
-  pgdata:
+  pgdata18:
   redisdata:
   bundle:
   node_modules:
