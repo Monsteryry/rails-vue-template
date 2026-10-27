@@ -11,6 +11,8 @@ bin/dev         runs Rails, Sidekiq and Vite
 bin/docker      runs the dev container stack without an editor
 ```
 
+Coding agents (Claude Code, Codex, Cursor, Copilot, ...) get project conventions from [AGENTS.md](AGENTS.md); `CLAUDE.md` imports it for Claude Code. Add your project's own rules at the bottom of `AGENTS.md`.
+
 ## Getting started
 
 There are two ways to run the app. Both use the same `bin/setup` and `bin/dev`.
