@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# The dev container stack without an editor. Examples:
+#   bin/docker up                       start Postgres, Redis and the app (runs bin/setup + bin/dev)
+#   bin/docker exec app bundle exec rspec          commands run in backend/
+#   bin/docker exec app bin/rails console
+#   bin/docker exec -w /workspace/frontend app npx vitest run
+#   bin/docker exec app bash                       shell inside the container
+#   bin/docker down
+# Uses the same containers and volumes as "Reopen in Container" in your editor.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+exec docker compose -f docker-compose.yml -f .devcontainer/compose.yaml "$@"

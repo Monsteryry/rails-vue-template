@@ -1,0 +1,36 @@
+// Dev Container for VS Code, Cursor and JetBrains: https://containers.dev
+// Open the repo and choose "Reopen in Container". Only Docker and Git are needed on your machine.
+{
+  "name": "Rails + Vue",
+  "dockerComposeFile": ["../docker-compose.yml", "compose.yaml"],
+  "service": "app",
+  "runServices": ["app", "db", "redis"],
+  "workspaceFolder": "/workspace",
+  "remoteUser": "dev",
+  "updateRemoteUserUID": true,
+  // Keep the container idle; start the apps yourself with bin/dev in the integrated terminal.
+  "overrideCommand": true,
+  "postCreateCommand": "bin/setup",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Shopify.ruby-lsp",
+        "Vue.volar",
+        "vitest.explorer",
+        "dbaeumer.vscode-eslint",
+        "oxc.oxc-vscode",
+        "esbenp.prettier-vscode",
+        "EditorConfig.EditorConfig"
+      ],
+      "settings": {
+        "rubyLsp.bundleGemfile": "backend/Gemfile",
+        "rubyLsp.rubyVersionManager": { "identifier": "none" },
+        "rubyLsp.formatter": "rubocop",
+        "[ruby]": { "editor.defaultFormatter": "Shopify.ruby-lsp" },
+        "[vue]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+        "eslint.workingDirectories": ["frontend"]
+      }
+    }
+  }
+}

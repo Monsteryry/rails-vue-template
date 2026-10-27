@@ -1,0 +1,43 @@
+# Adds the containerized dev environment on top of ../docker-compose.yml.
+# Used by .devcontainer/devcontainer.json and by bin/docker (no editor needed).
+# Paths are relative to the repository root (the first compose file's folder).
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        # Match your user ID on Linux so files in the mounted repo stay yours (Docker Desktop doesn't need this).
+        USER_UID: ${USER_UID:-1000}
+    # `docker compose exec app <cmd>` runs in backend/ (bin/rails, rspec, ...); the bin/ scripts cd to the root themselves.
+    working_dir: /workspace/backend
+    command: bash -c "../bin/setup && ../bin/dev"
+    environment:
+      IN_CONTAINER: "1"
+      DATABASE_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - .:/workspace:cached
+      # Gems and node_modules stay inside Docker, so macOS/Windows binaries never mix with Linux ones.
+      - bundle:/usr/local/bundle
+      - node_modules:/workspace/frontend/node_modules
+    ports:
+      - "${RAILS_PORT:-3000}:3000"
+      - "${VITE_PORT:-5173}:5173"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # The app reaches these over the Docker network, so don't claim host ports
+  # (avoids clashes with a Postgres or Redis already running on your machine).
+  db:
+    ports: !reset []
+
+  redis:
+    ports: !reset []
+
+volumes:
+  bundle:
+  node_modules:

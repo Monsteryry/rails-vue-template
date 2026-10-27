@@ -81,3 +81,19 @@ jobs:
       - run: npx eslint . && npx oxlint .
       - run: npm run build
       - run: npx vitest run
+
+  devcontainer:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build dev container
+        run: USER_UID=$(id -u) bin/docker build app
+
+      - name: Set up and run specs inside the dev container
+        run: bin/docker run --rm app bash -c "../bin/setup && bin/rails db:test:prepare && bundle exec rspec"
+
+      - name: Stop containers
+        if: always()
+        run: bin/docker down -v

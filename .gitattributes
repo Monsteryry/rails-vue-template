@@ -1,0 +1,9 @@
+# Check out with LF line endings on every OS, so scripts run inside Linux containers
+# even when the repo is cloned on Windows.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.gif binary
+*.woff2 binary

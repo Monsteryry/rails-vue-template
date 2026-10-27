@@ -3,33 +3,77 @@
 A starter for full-stack apps: a **Rails 8.1 API** backed by **PostgreSQL** with **UUID primary keys**, **Sidekiq + Redis** for background jobs, caching and Action Cable, and a **Vue 3 + Vite + TypeScript** frontend.
 
 ```
-backend/    Rails API (Ruby 3.3, PostgreSQL, Sidekiq + Redis, RSpec)
-frontend/   Vue 3, Vue Router, Pinia, Vitest, ESLint + Oxlint + Prettier
-bin/setup   one-time setup
-bin/dev     runs Rails, Sidekiq and Vite
+backend/        Rails API (Ruby 3.3, PostgreSQL, Sidekiq + Redis, RSpec)
+frontend/       Vue 3, Vue Router, Pinia, Vitest, ESLint + Oxlint + Prettier
+.devcontainer/  Docker dev environment (Ruby + Node), used by your editor and bin/docker
+bin/setup       installs dependencies and prepares the database
+bin/dev         runs Rails, Sidekiq and Vite
+bin/docker      runs the dev container stack without an editor
 ```
 
-## Requirements
+## Getting started
+
+There are two ways to run the app. Both use the same `bin/setup` and `bin/dev`.
+
+### Option A: Dev Container (recommended, same on macOS, Windows and Linux)
+
+Everything runs in Docker: Ruby, Node, Postgres and Redis. Gems and `node_modules` live in Docker volumes, so macOS, Windows and Linux binaries never mix when you switch machines.
+
+You need only:
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (on Windows, with the WSL 2 backend)
+- Git
+- An editor with Dev Containers support: VS Code or Cursor with the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension, or JetBrains (RubyMine / WebStorm via *Remote Development → Dev Containers*). Optional; see "Without an editor" below.
+
+Steps:
+
+1. Clone the repo and open the folder in your editor.
+2. Run **Dev Containers: Reopen in Container**. The first build takes a few minutes. After that, `bin/setup` runs automatically and the Ruby LSP, Vue, ESLint, Oxlint and Prettier extensions are installed in the container.
+3. In the editor's terminal, which runs inside the container, start the app with `bin/dev`.
+4. Open http://localhost:5173.
+
+Every command (`bundle exec rspec`, `bin/rails console`, `npm run lint`, ...) runs in that terminal, just as it would natively.
+
+**Without an editor**, `bin/docker` drives the same containers:
+
+```bash
+bin/docker up                                   # build, run bin/setup, then bin/dev (Ctrl+C stops)
+bin/docker exec app bundle exec rspec           # commands run in backend/
+bin/docker exec app bin/rails console
+bin/docker exec -w /workspace/frontend app npx vitest run
+bin/docker down                                 # stop (data stays in Docker volumes)
+```
+
+**Ports:** the container publishes Rails on 3000 and Vite on 5173. If something on your machine already uses them, create a `.env` file in the repo root (see `.env.example`), e.g. `RAILS_PORT=3100` and `VITE_PORT=5180`. Postgres and Redis are only reachable inside Docker, so they never clash with local installs.
+
+**Windows tips:**
+
+- Clone the repo *inside WSL* (e.g. `~/code` in Ubuntu), not under `C:\`. File access from Docker to Windows drives is slow, and file watching (live reload) is unreliable there. In WSL, run `code .` and reopen in the container.
+- `.gitattributes` forces LF line endings, so the scripts still run in Linux containers even if Git on Windows is set to convert line endings.
+
+### Option B: Native
+
+Requirements:
 
 - Ruby 3.3 (see `backend/.ruby-version`)
 - Node 24 (see `frontend/.nvmrc`; Node 20.19+ also works)
 - Docker, for the local PostgreSQL and Redis containers (or your own PostgreSQL 13+ and Redis)
 - On macOS, `libpq` to build the `pg` gem: `brew install libpq && bundle config build.pg --with-pg-config=$(brew --prefix libpq)/bin/pg_config`
 
-## Getting started
-
 ```bash
 bin/setup
 bin/dev
 ```
 
+If the ports are taken, run `RAILS_PORT=3100 VITE_PORT=5180 bin/dev`. If you already run Redis locally on 6379, either use it (no change needed) or start the container on another port with `REDIS_PORT=6380 REDIS_URL=redis://localhost:6380/0 bin/dev`.
+
+### URLs
+
 - Frontend: http://localhost:5173
 - API: http://localhost:3000/api/health
 - Sidekiq dashboard (development only): http://localhost:3000/sidekiq, with **Cron** and **Statuses** tabs
 
-Vite proxies `/api/*` to Rails, so the browser talks to one origin and no CORS setup is needed in development. If the ports are taken, run `RAILS_PORT=3100 VITE_PORT=5180 bin/dev`. If you already run Redis locally on 6379, either use it (no change needed) or start the container on another port with `REDIS_PORT=6380 REDIS_URL=redis://localhost:6380/0 bin/dev`.
-
-Database settings come from `DATABASE_*` env vars and Redis from `REDIS_URL` (see `.env.example`); the defaults match `docker-compose.yml`.
+Vite proxies `/api/*` to Rails, so the browser talks to one origin and no CORS setup is needed in development. Database settings come from `DATABASE_*` env vars and Redis from `REDIS_URL`; the defaults match `docker-compose.yml`, and the dev container sets them for its own network.
 
 ## UUID primary keys
 

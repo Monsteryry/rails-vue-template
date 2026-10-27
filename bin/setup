@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
-# One-time setup: start Postgres, install deps, prepare the database.
+# Install dependencies and prepare the database. Safe to re-run.
+# On your machine it also starts Postgres and Redis in Docker; in the dev container they already run.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-docker compose up -d --wait db redis
+if [ -n "${IN_CONTAINER:-}" ]; then
+  # Fresh Docker volumes are owned by root; hand node_modules to the dev user.
+  [ -w frontend/node_modules ] || sudo chown "$(id -u):$(id -g)" frontend/node_modules
+else
+  docker compose up -d --wait db redis
+fi
 
 (cd backend && bundle install && bin/rails db:prepare)
-(cd frontend && npm install)
+(cd frontend && npm install --no-fund --no-audit)
 
 echo "Done. Run bin/dev to start Rails (:3000), Sidekiq and Vite (:5173)."

@@ -6,10 +6,16 @@ cd "$(dirname "$0")/.."
 RAILS_PORT="${RAILS_PORT:-3000}"
 export VITE_API_PROXY_TARGET="${VITE_API_PROXY_TARGET:-http://localhost:$RAILS_PORT}"
 
-docker compose up -d --wait db redis
+if [ -n "${IN_CONTAINER:-}" ]; then
+  # Listen on all interfaces so the published ports reach the servers from your machine.
+  HOST=0.0.0.0
+else
+  HOST=localhost
+  docker compose up -d --wait db redis
+fi
 
 trap 'kill 0' EXIT
-(cd backend && bin/rails server -p "$RAILS_PORT") &
+(cd backend && bin/rails server -b "$HOST" -p "$RAILS_PORT") &
 (cd backend && bundle exec sidekiq) &
-(cd frontend && npm run dev) &
+(cd frontend && npm run dev -- --host "$HOST") &
 wait
