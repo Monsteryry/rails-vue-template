@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Sidekiq connects to REDIS_URL. Set it explicitly so the server and client agree.
 redis_config = { url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0") }
 

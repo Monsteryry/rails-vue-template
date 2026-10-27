@@ -74,6 +74,8 @@ cd backend && bin/rails test && bin/rubocop && bin/brakeman
 cd frontend && npm run lint && npm run build && npx vitest run
 ```
 
+RuboCop uses its defaults plus the `rubocop-rails`, `rubocop-performance` and `rubocop-minitest` plugins, with a few Rails-friendly overrides in `backend/.rubocop.yml` (double quotes, 120-char lines, no class doc comments). Run `bin/rubocop -A` to autocorrect, for example to add the `# frozen_string_literal: true` comment to newly generated files.
+
 GitHub Actions (`.github/workflows/ci.yml`) runs all of these on every push and PR.
 
 ## Starting a new project from this template

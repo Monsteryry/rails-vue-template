@@ -1,8 +1,47 @@
-# Omakase Ruby styling for Rails
-inherit_gem: { rubocop-rails-omakase: rubocop.yml }
+# RuboCop defaults plus the official Rails, Performance and Minitest plugins.
+# Adjust rules below to build your own house style: https://docs.rubocop.org/rubocop/configuration.html
+plugins:
+  - rubocop-rails
+  - rubocop-performance
+  - rubocop-minitest
 
-# Overwrite or add rules to create your own house style
-#
-# # Use `[a, [b, c]]` not `[ a, [ b, c ] ]`
-# Layout/SpaceInsideArrayLiteralBrackets:
-#   Enabled: false
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+  # TargetRubyVersion is read from .ruby-version.
+  Exclude:
+    - bin/**/*
+    - db/*schema.rb
+    - log/**/*
+    - node_modules/**/*
+    - storage/**/*
+    - tmp/**/*
+    - vendor/**/*
+
+# Rails code commonly uses double quotes (matches the generators' output).
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+# Class-level doc comments are noise for controllers, models and jobs.
+Style/Documentation:
+  Enabled: false
+
+# Rails' generated config files and short classes read better with a little more room.
+Layout/LineLength:
+  Max: 120
+
+Metrics/MethodLength:
+  Max: 15
+
+Metrics/BlockLength:
+  Exclude:
+    - config/**/*
+    - test/**/*
+
+# `class Api::HealthControllerTest` style is idiomatic in Rails tests.
+Style/ClassAndModuleChildren:
+  Exclude:
+    - test/**/*
