@@ -52,7 +52,15 @@ jobs:
       - name: Test
         env:
           RAILS_ENV: test
-        run: bin/rails db:test:prepare test
+        run: bin/rails db:test:prepare && bundle exec rspec
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: backend/coverage
+          if-no-files-found: ignore
 
   frontend:
     runs-on: ubuntu-latest

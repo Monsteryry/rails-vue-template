@@ -1,9 +1,11 @@
-# RuboCop defaults plus the official Rails, Performance and Minitest plugins.
+# RuboCop defaults plus the official Rails, Performance, RSpec and FactoryBot plugins.
 # Adjust rules below to build your own house style: https://docs.rubocop.org/rubocop/configuration.html
 plugins:
   - rubocop-rails
   - rubocop-performance
-  - rubocop-minitest
+  - rubocop-rspec
+  - rubocop-rspec_rails
+  - rubocop-factory_bot
 
 AllCops:
   NewCops: enable
@@ -39,9 +41,7 @@ Metrics/MethodLength:
 Metrics/BlockLength:
   Exclude:
     - config/**/*
-    - test/**/*
 
-# `class Api::HealthControllerTest` style is idiomatic in Rails tests.
-Style/ClassAndModuleChildren:
-  Exclude:
-    - test/**/*
+# Request specs often check status and body together.
+RSpec/MultipleExpectations:
+  Max: 3

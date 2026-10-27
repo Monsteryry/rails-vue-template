@@ -13,3 +13,5 @@
 /config/credentials/*.key
 .env*
 !.env.example
+/coverage
+/spec/examples.txt

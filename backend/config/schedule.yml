@@ -1,0 +1,10 @@
+# Recurring jobs for sidekiq-cron, loaded when Sidekiq starts (ERB is supported).
+# Cron syntax: minute hour day-of-month month day-of-week. See the "Cron" tab in /sidekiq.
+# Removing an entry here removes the job on the next Sidekiq start.
+example_job:
+  cron: "0 3 * * *" # every day at 03:00
+  class: "ExampleJob"
+  active_job: true
+  queue: default
+  args: ["scheduled by sidekiq-cron"]
+  description: "Sample recurring job; delete together with ExampleJob"

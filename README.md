@@ -3,7 +3,7 @@
 A starter for full-stack apps: a **Rails 8.1 API** backed by **PostgreSQL** with **UUID primary keys**, **Sidekiq + Redis** for background jobs, caching and Action Cable, and a **Vue 3 + Vite + TypeScript** frontend.
 
 ```
-backend/    Rails API (Ruby 3.3, PostgreSQL, Sidekiq + Redis)
+backend/    Rails API (Ruby 3.3, PostgreSQL, Sidekiq + Redis, RSpec)
 frontend/   Vue 3, Vue Router, Pinia, Vitest, ESLint + Oxlint + Prettier
 bin/setup   one-time setup
 bin/dev     runs Rails, Sidekiq and Vite
@@ -25,7 +25,7 @@ bin/dev
 
 - Frontend: http://localhost:5173
 - API: http://localhost:3000/api/health
-- Sidekiq dashboard (development only): http://localhost:3000/sidekiq
+- Sidekiq dashboard (development only): http://localhost:3000/sidekiq, with **Cron** and **Statuses** tabs
 
 Vite proxies `/api/*` to Rails, so the browser talks to one origin and no CORS setup is needed in development. If the ports are taken, run `RAILS_PORT=3100 VITE_PORT=5180 bin/dev`. If you already run Redis locally on 6379, either use it (no change needed) or start the container on another port with `REDIS_PORT=6380 REDIS_URL=redis://localhost:6380/0 bin/dev`.
 
@@ -61,20 +61,31 @@ When writing a migration by hand, pass `id: :uuid` to `create_table` and `type: 
 
 Redis backs all three:
 
-- **Active Job → Sidekiq** (`config.active_job.queue_adapter = :sidekiq` in `config/application.rb`). Queues and concurrency live in `config/sidekiq.yml`; `bin/dev` runs a Sidekiq process. Try it with `ExampleJob.perform_later("hello")` from `bin/rails console`. Tests use the in-memory `:test` adapter.
+- **Active Job → Sidekiq** (`config.active_job.queue_adapter = :sidekiq` in `config/application.rb`). Queues and concurrency live in `config/sidekiq.yml`; `bin/dev` runs a Sidekiq process. Try it with `ExampleJob.perform_later("hello")` from `bin/rails console`. Specs use the in-memory `:test` adapter.
 - **Rails.cache → Redis** in production (`config/environments/production.rb`). Development keeps the in-memory store; toggle caching with `bin/rails dev:cache`.
 - **Action Cable → Redis** in development and production (`config/cable.yml`), so broadcasts from jobs reach connected clients.
 
-For recurring jobs, add a scheduler such as [sidekiq-cron](https://github.com/sidekiq-cron/sidekiq-cron).
+- **Recurring jobs → [sidekiq-cron](https://github.com/sidekiq-cron/sidekiq-cron).** Define them in `config/schedule.yml`; Sidekiq loads the file on start. The sample entry runs `ExampleJob` daily at 03:00.
+- **Job status → [sidekiq-status](https://github.com/kenaniah/sidekiq-status).** `ApplicationJob` includes `Sidekiq::Status::Worker`, so every job's status is kept in Redis for 30 minutes (set in `config/initializers/sidekiq.rb`). Report progress with `total` / `at`, and read it with `Sidekiq::Status.status(job.provider_job_id)` or `Sidekiq::Status.pct_complete(...)`.
 
 ## Tests and linting
 
 ```bash
-cd backend && bin/rails test && bin/rubocop && bin/brakeman
+cd backend && bundle exec rspec && bin/rubocop && bin/brakeman
 cd frontend && npm run lint && npm run build && npx vitest run
 ```
 
-RuboCop uses its defaults plus the `rubocop-rails`, `rubocop-performance` and `rubocop-minitest` plugins, with a few Rails-friendly overrides in `backend/.rubocop.yml` (double quotes, 120-char lines, no class doc comments). Run `bin/rubocop -A` to autocorrect, for example to add the `# frozen_string_literal: true` comment to newly generated files.
+Backend tests use **RSpec** (`backend/spec`) with:
+
+- [FactoryBot](https://github.com/thoughtbot/factory_bot_rails): put factories in `spec/factories`, then call `create(:user)` / `build(:user)`.
+- [shoulda-matchers](https://matchers.shoulda.io/): `it { is_expected.to validate_presence_of(:name) }`, `belong_to(:project)`, ...
+- [Faker](https://github.com/faker-ruby/faker) for fake data in factories.
+- [SimpleCov](https://github.com/simplecov-ruby/simplecov): every `rspec` run writes `backend/coverage/index.html` (line and branch coverage). CI uploads it as the `coverage` artifact.
+- Active Job matchers (`have_enqueued_job`) and cleanup between examples, from `spec/support/`.
+
+`rails g model` / `rails g job` generate specs and factories automatically. Specs run in random order; reproduce a failure with `rspec --seed <seed>`, or re-run only failures with `rspec --only-failures`.
+
+RuboCop uses its defaults plus the `rubocop-rails`, `rubocop-performance`, `rubocop-rspec`, `rubocop-rspec_rails` and `rubocop-factory_bot` plugins, with a few Rails-friendly overrides in `backend/.rubocop.yml` (double quotes, 120-char lines, no class doc comments). Run `bin/rubocop -A` to autocorrect, for example to add the `# frozen_string_literal: true` comment to newly generated files.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs all of these on every push and PR.
 

@@ -20,6 +20,8 @@ gem "tzinfo-data", platforms: %i[windows jruby]
 # Redis backs Rails.cache, Action Cable and Sidekiq (Active Job)
 gem "redis", "~> 6.0"
 gem "sidekiq", "~> 8.1"
+gem "sidekiq-cron", "~> 2.4"
+gem "sidekiq-status", "~> 4.0"
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
@@ -45,7 +47,21 @@ group :development, :test do
 
   # Ruby/Rails linting; config in .rubocop.yml [https://docs.rubocop.org/]
   gem "rubocop", require: false
-  gem "rubocop-minitest", require: false
+  gem "rubocop-factory_bot", require: false
   gem "rubocop-performance", require: false
   gem "rubocop-rails", require: false
+  gem "rubocop-rspec", require: false
+  gem "rubocop-rspec_rails", require: false
+
+  # Testing: RSpec, factories and fake data
+  gem "factory_bot_rails"
+  gem "faker"
+  gem "rspec-rails", "~> 8.0"
+end
+
+group :test do
+  # One-liner matchers for validations and associations [https://matchers.shoulda.io/]
+  gem "shoulda-matchers", "~> 8.0"
+  # Coverage report in coverage/index.html
+  gem "simplecov", require: false
 end

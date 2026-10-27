@@ -5,6 +5,8 @@ class ExampleJob < ApplicationJob
   queue_as :default
 
   def perform(message)
+    total 1
     Rails.logger.info("ExampleJob ran: #{message}")
+    at 1, "Logged message"
   end
 end
