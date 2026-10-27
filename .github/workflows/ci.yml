@@ -40,11 +40,14 @@ jobs:
           working-directory: backend
           bundler-cache: true
 
-      - name: Security scan
-        run: bin/brakeman --no-pager && bin/bundler-audit
-
-      - name: Lint
+      - name: RuboCop
         run: bin/rubocop -f github
+
+      - name: Brakeman
+        run: bin/brakeman --no-pager --exit-on-warn --exit-on-error
+
+      - name: Bundler audit
+        run: bin/bundler-audit
 
       - name: Test
         env:
