@@ -33,7 +33,7 @@ jobs:
         working-directory: .
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libpq-dev libvips
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -69,7 +69,7 @@ jobs:
         working-directory: frontend
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Build dev container
         run: USER_UID=$(id -u) bin/docker build app
