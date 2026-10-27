@@ -19,7 +19,9 @@ services:
     volumes:
       - .:/workspace:cached
       # Gems and node_modules stay inside Docker, so macOS/Windows binaries never mix with Linux ones.
-      - bundle:/usr/local/bundle
+      # Native gem extensions are built per Ruby minor version, so the volume name carries it
+      # (rename it when .ruby-version moves to a new minor, e.g. 4.1).
+      - bundle-ruby4.0:/usr/local/bundle
       - node_modules:/workspace/frontend/node_modules
     ports:
       - "${RAILS_PORT:-3000}:3000"
@@ -39,5 +41,5 @@ services:
     ports: !reset []
 
 volumes:
-  bundle:
+  bundle-ruby4.0:
   node_modules:

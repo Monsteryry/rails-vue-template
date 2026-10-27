@@ -3,7 +3,7 @@
 A starter for full-stack apps: a **Rails 8.1 API** backed by **PostgreSQL** with **UUID primary keys**, **Sidekiq + Redis** for background jobs, caching and Action Cable, and a **Vue 3 + Vite + TypeScript** frontend.
 
 ```
-backend/        Rails API (Ruby 3.3, PostgreSQL, Sidekiq + Redis, RSpec)
+backend/        Rails API (Ruby 4.0, PostgreSQL, Sidekiq + Redis, RSpec)
 frontend/       Vue 3, Vue Router, Pinia, Vitest, ESLint + Oxlint + Prettier
 .devcontainer/  Docker dev environment (Ruby + Node), used by your editor and bin/docker
 bin/setup       installs dependencies and prepares the database
@@ -82,7 +82,7 @@ Settings the app reads at runtime, such as API keys, go in `docker-dev/app.env` 
 
 Requirements:
 
-- Ruby 3.3 (see `backend/.ruby-version`)
+- Ruby 4.0 (see `backend/.ruby-version`)
 - Node 24 (see `frontend/.nvmrc`; Node 22.22+ also works)
 - Docker, for the local PostgreSQL and Redis containers (or your own PostgreSQL 13+ and Redis; the containers use PostgreSQL 18)
 - On macOS, `libpq` to build the `pg` gem: `brew install libpq && bundle config build.pg --with-pg-config=$(brew --prefix libpq)/bin/pg_config`
@@ -159,6 +159,13 @@ Backend tests use **RSpec** (`backend/spec`) with:
 RuboCop uses its defaults plus the `rubocop-rails`, `rubocop-performance`, `rubocop-rspec`, `rubocop-rspec_rails` and `rubocop-factory_bot` plugins, with a few Rails-friendly overrides in `backend/.rubocop.yml` (double quotes, 120-char lines, no class doc comments). Run `bin/rubocop -A` to autocorrect, for example to add the `# frozen_string_literal: true` comment to newly generated files.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs all of these on every push and PR.
+
+## Upgrading Ruby or PostgreSQL
+
+- **Ruby:** change `backend/.ruby-version` and `RUBY_VERSION` in `.devcontainer/Dockerfile` and `backend/Dockerfile`. For a new minor version (e.g. 4.0 → 4.1), also rename the `bundle-ruby4.0` volume in `.devcontainer/compose.yaml` and `docker-dev/docker-compose.yml`, because native gem extensions are built per Ruby minor version. Then rebuild (**Dev Containers: Rebuild Container**, or `docker compose up -d --build` in `docker-dev/`).
+- **PostgreSQL:** change the `postgres:<major>` image in `docker-compose.yml`, `docker-dev/docker-compose.yml` and `.github/workflows/ci.yml`, `POSTGRES_VERSION` in `.devcontainer/Dockerfile` (client tools), and the `pgdata<major>` volume name. A new major version can't read an older one's data directory; to keep local data, `pg_dump` it before switching and restore it afterwards.
+
+Old volumes stay on your machine until you remove them (`docker volume ls`, then `docker volume rm <name>`).
 
 ## Starting a new project from this template
 

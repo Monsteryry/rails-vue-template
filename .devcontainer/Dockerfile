@@ -1,6 +1,6 @@
 # Development image: Ruby (matches backend/.ruby-version) + Node (matches frontend/.nvmrc)
 # with everything needed to build the pg gem and run Rails, Sidekiq and Vite.
-ARG RUBY_VERSION=3.3.10
+ARG RUBY_VERSION=4.0.9
 ARG NODE_VERSION=24
 
 FROM node:${NODE_VERSION}-slim AS node
