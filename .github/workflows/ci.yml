@@ -88,6 +88,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Validate docker-dev compose file
+        run: docker compose -f docker-dev/docker-compose.yml config --quiet
+
       - name: Build dev container
         run: USER_UID=$(id -u) bin/docker build app
 

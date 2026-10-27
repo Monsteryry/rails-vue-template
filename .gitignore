@@ -3,3 +3,6 @@
 .env.*
 !.env.example
 .idea/
+
+# docker-dev runtime settings (see docker-dev/app.env.example)
+docker-dev/app.env

@@ -11,7 +11,12 @@ export default defineConfig({
     port: Number(process.env.VITE_PORT ?? 5173),
     // Forward API calls to Rails so the browser sees one origin (no CORS in dev).
     proxy: {
-      '/api': process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000',
+      '/api': {
+        target: process.env.VITE_API_PROXY_TARGET ?? 'http://localhost:3000',
+        // Keep the browser's Host header (localhost:…), which Rails allows in development,
+        // even when the target is another container such as http://web:3000.
+        changeOrigin: false,
+      },
     },
   },
   resolve: {

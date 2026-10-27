@@ -7,6 +7,7 @@ Guidance for coding agents working in this repo. Rails 8.1 API (`backend/`) and 
 - **Development runs in the dev container** (`.devcontainer/`). In the editor's container terminal, run commands as usual. From the host, prefix them with `bin/docker exec app`, which starts in `backend/`:
   - `bin/docker exec app bundle exec rspec`
   - `bin/docker exec -w /workspace/frontend app npx vitest run`
+- Alternatively the user may run `docker-dev/` (one container per process). There, run commands from `docker-dev/` as `docker compose exec web <cmd>` (starts in `backend/`), and the frontend as `docker compose exec -w /workspace/frontend frontend <cmd>`. Interactive debugging there is `docker compose attach web`; detach with Ctrl+P Ctrl+Q, never Ctrl+C.
 - A native setup (Ruby and Node on the host) also works; see README.md. Don't install Ruby, Node, gems or packages on the host unless asked.
 - Backend commands run in `backend/`, frontend commands in `frontend/`. The repo root has no Gemfile or package.json.
 - `bin/setup` installs dependencies and prepares the database (safe to re-run). `bin/dev` runs Rails (:3000), Sidekiq and Vite (:5173).
@@ -63,6 +64,7 @@ backend/spec/                   RSpec; support/ holds FactoryBot, shoulda-matche
 frontend/src/                   api/, views/, components/, router/, stores/
 .devcontainer/                  dev image, compose override, editor settings
 bin/                            setup, dev, docker
+docker-dev/                     per-process compose stack (web, sidekiq, frontend) with attachable terminals
 .env (git-ignored)              host ports for the dev container; see .env.example
 ```
 

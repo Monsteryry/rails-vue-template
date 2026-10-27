@@ -1,0 +1,109 @@
+# One container per process, with Rails and Sidekiq attached to a terminal so
+# `binding.break` / `debugger` stop right there: `docker compose attach web`.
+#
+#   cd docker-dev
+#   docker compose up -d           first run builds the image and runs bin/setup
+#   docker compose attach web      Rails output + debugger prompt (detach: Ctrl+P Ctrl+Q)
+#   docker compose exec web bundle exec rspec
+#   docker compose down
+#
+# Uses the same image as the dev container (.devcontainer/Dockerfile). Paths are relative to this folder.
+name: ${COMPOSE_PROJECT_NAME:-rails-vue-dev}
+
+x-app: &app
+  build:
+    context: ..
+    dockerfile: .devcontainer/Dockerfile
+    args:
+      # Match your user ID on Linux so files in the mounted repo stay yours (Docker Desktop doesn't need this).
+      USER_UID: ${USER_UID:-1000}
+  volumes:
+    - ..:/workspace:cached
+    # Gems and node_modules stay inside Docker, so macOS/Windows binaries never mix with Linux ones.
+    - bundle:/usr/local/bundle
+    - node_modules:/workspace/frontend/node_modules
+  environment: &app-env
+    IN_CONTAINER: "1"
+    DATABASE_HOST: db
+    REDIS_URL: redis://redis:6379/0
+  env_file:
+    # Optional app settings (API keys etc.); copy app.env.example to app.env.
+    - path: app.env
+      required: false
+  working_dir: /workspace/backend
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # Installs gems and npm packages and prepares the database, then exits.
+  setup:
+    <<: *app
+    command: ../bin/setup
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    <<: *app
+    # PID file outside the mounted repo, so a killed container never leaves a stale server.pid behind.
+    command: bin/rails server -b 0.0.0.0 -p 3000 -P /tmp/server.pid
+    ports:
+      - "${RAILS_PORT:-3000}:3000"
+    stdin_open: true
+    tty: true
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+
+  sidekiq:
+    <<: *app
+    command: bundle exec sidekiq
+    stdin_open: true
+    tty: true
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+
+  frontend:
+    <<: *app
+    working_dir: /workspace/frontend
+    command: npm run dev -- --host 0.0.0.0
+    environment:
+      <<: *app-env
+      VITE_API_PROXY_TARGET: http://web:3000
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:
+  redisdata:
+  bundle:
+  node_modules:

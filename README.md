@@ -9,13 +9,14 @@ frontend/       Vue 3, Vue Router, Pinia, Vitest, ESLint + Oxlint + Prettier
 bin/setup       installs dependencies and prepares the database
 bin/dev         runs Rails, Sidekiq and Vite
 bin/docker      runs the dev container stack without an editor
+docker-dev/     one container per process (web, sidekiq, frontend) for terminal debugging
 ```
 
 Coding agents (Claude Code, Codex, Cursor, Copilot, ...) get project conventions from [AGENTS.md](AGENTS.md); `CLAUDE.md` imports it for Claude Code. Add your project's own rules at the bottom of `AGENTS.md`.
 
 ## Getting started
 
-There are two ways to run the app. Both use the same `bin/setup` and `bin/dev`.
+There are three ways to run the app: A and B need only Docker, C runs Ruby and Node on your machine. All of them use the same `bin/setup`.
 
 ### Option A: Dev Container (recommended, same on macOS, Windows and Linux)
 
@@ -53,7 +54,31 @@ bin/docker down                                 # stop (data stays in Docker vol
 - Clone the repo *inside WSL* (e.g. `~/code` in Ubuntu), not under `C:\`. File access from Docker to Windows drives is slow, and file watching (live reload) is unreliable there. In WSL, run `code .` and reopen in the container.
 - `.gitattributes` forces LF line endings, so the scripts still run in Linux containers even if Git on Windows is set to convert line endings.
 
-### Option B: Native
+### Option B: docker-dev (one container per process)
+
+`docker-dev/docker-compose.yml` runs the same image as separate `web`, `sidekiq` and `frontend` services, next to `db` and `redis`. A one-shot `setup` service runs `bin/setup` first. Use it when you want each process in its own container with its own logs, or when you want `binding.break` to stop in a terminal you can type into.
+
+```bash
+cd docker-dev
+cp .env.example .env              # optional: project name and host ports
+docker compose up -d              # first run builds the image and runs bin/setup
+docker compose logs -f web        # follow a service's output
+docker compose exec web bundle exec rspec
+docker compose exec web bin/rails console
+docker compose down               # stop (data stays in Docker volumes)
+```
+
+**Debugging:** `web` and `sidekiq` run attached to a terminal. Put `binding.break` (or `debugger`) in the code, trigger it, then run:
+
+```bash
+docker compose attach web         # or: docker compose attach sidekiq
+```
+
+You get the `(rdbg)` prompt: `p some_var`, `next`, `step`, `info`, and `c` to continue. Detach with **Ctrl+P Ctrl+Q**; pressing Ctrl+C would stop the container.
+
+Settings the app reads at runtime, such as API keys, go in `docker-dev/app.env` (copy `app.env.example`; it's git-ignored and passed to every service). Containers, volumes and the database are separate from Option A's, so run one stack at a time if they use the same host ports.
+
+### Option C: Native
 
 Requirements:
 
@@ -138,7 +163,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs all of these on every push and 
 ## Starting a new project from this template
 
 1. Click **Use this template** on GitHub (enable it under the repo's *Settings → Template repository*), or clone and re-init git.
-2. Rename the app: change `module Backend` in `backend/config/application.rb` and the `app_*` database names in `backend/config/database.yml`.
+2. Rename the app: change `module Backend` in `backend/config/application.rb`, the `app_*` database names in `backend/config/database.yml`, and the default `COMPOSE_PROJECT_NAME` in `docker-dev/docker-compose.yml` and `docker-dev/.env.example`, so two projects never share containers or volumes.
 3. Create credentials for the new app: `cd backend && bin/rails credentials:edit` (this generates `config/master.key`, which is git-ignored). Alternatively, set `SECRET_KEY_BASE` in production.
 4. Remove the sample health check (`backend/app/controllers/api/health_controller.rb`, `frontend/src/views/HomeView.vue`) once you have real endpoints.
 
