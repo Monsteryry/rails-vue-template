@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Attach to a Rails or Sidekiq process started by bin/dev that stopped at `binding.break`.
+#   bin/debug          attach to the only waiting process, or list them
+#   bin/debug web      attach to Rails
+#   bin/debug sidekiq  attach to Sidekiq
+# In the debugger: p some_var, next, step, info, bt; `c` continues, Ctrl+D detaches.
+set -euo pipefail
+cd "$(dirname "$0")/../backend"
+
+session="${1:-}"
+socks=()
+while IFS= read -r sock; do socks+=("$sock"); done < <(
+  bundle exec rdbg --util=list-socks 2>/dev/null | grep -E -- "-${session:-[^/]+}\$" || true
+)
+
+case "${#socks[@]}" in
+  0)
+    echo "No debugger is open${session:+ for '$session'}. Start the app with bin/dev, then hit a binding.break." >&2
+    exit 1
+    ;;
+  1)
+    # Nonstop: don't pause the whole process on connect, just show the stopped breakpoint.
+    # (Otherwise the extra pause shifts every command's output by one stop.)
+    RUBY_DEBUG_NONSTOP=true exec bundle exec rdbg --attach "${socks[0]}"
+    ;;
+  *)
+    echo "Several debug sessions are open; pick one with bin/debug <name>:" >&2
+    for sock in "${socks[@]}"; do echo "  ${sock##*-}  ($sock)" >&2; done
+    exit 1
+    ;;
+esac

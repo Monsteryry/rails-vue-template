@@ -11,6 +11,7 @@ Guidance for coding agents working in this repo. Rails 8.1 API (`backend/`) and 
 - A native setup (Ruby and Node on the host) also works; see README.md. Don't install Ruby, Node, gems or packages on the host unless asked.
 - Backend commands run in `backend/`, frontend commands in `frontend/`. The repo root has no Gemfile or package.json.
 - `bin/setup` installs dependencies and prepares the database (safe to re-run). `bin/dev` runs Rails (:3000), Sidekiq and Vite (:5173).
+- Interactive debugging: `binding.break` in code started by `bin/dev` waits on a debug socket; the user attaches with `bin/debug web|sidekiq` (detach: Ctrl+C, `quit`, `y`). Don't leave `binding.break` / `debugger` calls in committed code.
 
 ## Before you say you're done
 
@@ -63,7 +64,7 @@ backend/config/                 sidekiq.yml, schedule.yml, cable.yml, database.y
 backend/spec/                   RSpec; support/ holds FactoryBot, shoulda-matchers, Active Job setup
 frontend/src/                   api/, views/, components/, router/, stores/
 .devcontainer/                  dev image, compose override, editor settings
-bin/                            setup, dev, docker
+bin/                            setup, dev, docker, debug, rename
 docker-dev/                     per-process compose stack (web, sidekiq, frontend) with attachable terminals
 .env (git-ignored)              host ports for the dev container; see .env.example
 ```

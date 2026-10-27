@@ -9,13 +9,27 @@ export VITE_API_PROXY_TARGET="${VITE_API_PROXY_TARGET:-http://localhost:$RAILS_P
 if [ -n "${IN_CONTAINER:-}" ]; then
   # Listen on all interfaces so the published ports reach the servers from your machine.
   HOST=0.0.0.0
+  # Keep the PID file out of the mounted repo: after a container restart a leftover
+  # tmp/pids/server.pid can match a new, unrelated process and Rails refuses to start.
+  PIDFILE=/tmp/rails-server.pid
+  # Only bin/dev starts Rails in this container, so any PID file here is left over from before.
+  rm -f "$PIDFILE"
 else
   HOST=localhost
+  PIDFILE=tmp/pids/server.pid
   docker compose up -d --wait db redis
 fi
 
-trap 'kill 0' EXIT
-(cd backend && bin/rails server -b "$HOST" -p "$RAILS_PORT") &
-(cd backend && bundle exec sidekiq) &
+# Rails and Sidekiq have no terminal of their own here, so they open a debug socket instead
+# (config/initializers/debug.rb). `binding.break` and editor breakpoints stop there;
+# attach with bin/debug or your editor. RUBY_DEBUG_OPEN=false turns it off.
+DEBUG_OPEN="${RUBY_DEBUG_OPEN:-true}"
+# Remove debug sockets left by an earlier run that didn't shut down cleanly.
+(cd backend && bundle exec rdbg --util=list-socks 2>/dev/null | grep -E -- "-(web|sidekiq)\$" | xargs rm -f) || true
+
+# Stop all three on Ctrl+C, on exit and on `docker stop` (SIGTERM), so they shut down cleanly.
+trap 'trap - EXIT; kill 0' EXIT INT TERM
+(cd backend && RUBY_DEBUG_OPEN="$DEBUG_OPEN" RUBY_DEBUG_SESSION_NAME=web bin/rails server -b "$HOST" -p "$RAILS_PORT" -P "$PIDFILE") &
+(cd backend && RUBY_DEBUG_OPEN="$DEBUG_OPEN" RUBY_DEBUG_SESSION_NAME=sidekiq bundle exec sidekiq) &
 (cd frontend && npm run dev -- --host "$HOST") &
 wait

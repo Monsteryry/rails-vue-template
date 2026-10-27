@@ -9,6 +9,8 @@ frontend/       Vue 3, Vue Router, Pinia, Vitest, ESLint + Oxlint + Prettier
 bin/setup       installs dependencies and prepares the database
 bin/dev         runs Rails, Sidekiq and Vite
 bin/docker      runs the dev container stack without an editor
+bin/debug       attaches to Rails or Sidekiq stopped at a breakpoint
+bin/rename      renames the app (module, databases, project names) in one step
 docker-dev/     one container per process (web, sidekiq, frontend) for terminal debugging
 ```
 
@@ -139,6 +141,29 @@ Redis backs all three:
 - **Recurring jobs → [sidekiq-cron](https://github.com/sidekiq-cron/sidekiq-cron).** Define them in `config/schedule.yml`; Sidekiq loads the file on start. The sample entry runs `ExampleJob` daily at 03:00.
 - **Job status → [sidekiq-status](https://github.com/kenaniah/sidekiq-status).** `ApplicationJob` includes `Sidekiq::Status::Worker`, so every job's status is kept in Redis for 30 minutes (set in `config/initializers/sidekiq.rb`). Report progress with `total` / `at`, and read it with `Sidekiq::Status.status(job.provider_job_id)` or `Sidekiq::Status.pct_complete(...)`.
 
+## Debugging
+
+`bin/dev` starts Rails and Sidekiq with a debug socket open (`config/initializers/debug.rb`), because they run in the background without a terminal of their own. This works the same in the Dev Container, with `bin/docker`, and natively.
+
+1. Put `binding.break` (or `debugger`) in the code and trigger it: open the page, or enqueue the job.
+2. In a second terminal, attach:
+
+   ```bash
+   bin/debug web        # Rails; or: bin/debug sidekiq
+   ```
+
+   From your machine with Option A's containers: `bin/docker exec -it app ../bin/debug web`. With no name, `bin/debug` attaches to the only open session or lists them.
+3. You see the stopped line. Inspect with `p some_var`, `info`, `bt`, step with `next` / `step`, and resume with `c`.
+4. To leave the debugger: **Ctrl+C**, then `quit` and `y`. The app keeps running; Ctrl+D alone doesn't detach.
+
+**In VS Code / Cursor:** with `bin/dev` running, open *Run and Debug* and start **Attach to Rails / Sidekiq** (from `.vscode/launch.json`, using the rdbg extension the Dev Container installs). Set breakpoints by clicking in the gutter; `binding.break` works too. If both processes are running, it asks which one to attach to. **Debug current spec file** runs the open spec under the debugger.
+
+**Specs** run in the foreground, so `binding.break` in a spec or in code it calls stops right in the terminal running `bundle exec rspec`.
+
+**docker-dev** (Option B) uses attached terminals instead: `docker compose attach web`, detach with Ctrl+P Ctrl+Q.
+
+To turn the debug socket off, run `RUBY_DEBUG_OPEN=false bin/dev`.
+
 ## Tests and linting
 
 ```bash
@@ -170,10 +195,20 @@ Old volumes stay on your machine until you remove them (`docker volume ls`, then
 ## Starting a new project from this template
 
 1. Click **Use this template** on GitHub (enable it under the repo's *Settings → Template repository*), or clone and re-init git.
-2. Rename the app: change `module Backend` in `backend/config/application.rb`, the `app_*` database names in `backend/config/database.yml`, and the default `COMPOSE_PROJECT_NAME` in `docker-dev/docker-compose.yml` and `docker-dev/.env.example`, so two projects never share containers or volumes.
+2. Rename the app:
+
+   ```bash
+   bin/rename my_app
+   ```
+
+   This sets the Rails module (`MyApp`), the database names (`my_app_development`, `my_app_test`, `my_app_production`), the Action Cable channel prefixes, the docker-dev project name (`my-app-dev`, so two projects never share containers or volumes), the dev container name and the page title. It needs only bash and perl, and you can run it again later with a different name. Then run `bin/setup` (or rebuild the dev container) to create the new databases.
 3. Create credentials for the new app: `cd backend && bin/rails credentials:edit` (this generates `config/master.key`, which is git-ignored). Alternatively, set `SECRET_KEY_BASE` in production.
 4. Remove the sample health check (`backend/app/controllers/api/health_controller.rb`, `frontend/src/views/HomeView.vue`) once you have real endpoints.
 
 ## Production
 
 `backend/Dockerfile` builds the Rails API. Set `DATABASE_URL`, `REDIS_URL`, and `SECRET_KEY_BASE` or `RAILS_MASTER_KEY`. Run the same image a second time as the worker with `bundle exec sidekiq`. Protect `/sidekiq` with authentication before mounting it outside development. `npm run build` in `frontend/` produces static files in `frontend/dist` to host on any static host or CDN, with `/api` routed to the Rails service.
+
+## License
+
+[MIT](LICENSE). Projects you create from this template can use any license you like; replace `LICENSE` in your project if MIT isn't right for it.

@@ -15,6 +15,7 @@
     "vscode": {
       "extensions": [
         "Shopify.ruby-lsp",
+        "KoichiSasada.vscode-rdbg",
         "Vue.volar",
         "vitest.explorer",
         "dbaeumer.vscode-eslint",

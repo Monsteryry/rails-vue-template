@@ -1,0 +1,23 @@
+{
+  // Run and Debug → "Attach to Rails / Sidekiq", after starting the app with bin/dev.
+  // Set breakpoints in the gutter or with `binding.break`. If both processes are running,
+  // the rdbg extension asks which one to attach to (the socket names end in -web / -sidekiq).
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "rdbg",
+      "name": "Attach to Rails / Sidekiq",
+      "request": "attach",
+      "cwd": "${workspaceFolder}/backend"
+    },
+    {
+      "type": "rdbg",
+      "name": "Debug current spec file",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/backend",
+      "command": "bundle exec rspec",
+      "script": "${file}",
+      "askParameters": false
+    }
+  ]
+}
