@@ -7,5 +7,6 @@ class Api::HealthControllerTest < ActionDispatch::IntegrationTest
     body = response.parsed_body
     assert_equal "ok", body["status"]
     assert_match(/PostgreSQL/, body["database"])
+    assert_equal "PONG", body["redis"]
   end
 end

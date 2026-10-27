@@ -41,6 +41,9 @@ module Backend
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    # Run Active Job through Sidekiq (backed by Redis). Tests use the :test adapter.
+    config.active_job.queue_adapter = :sidekiq
+
     # Use UUIDs as primary keys (and foreign keys via references) for all new tables.
     config.generators do |g|
       g.orm :active_record, primary_key_type: :uuid

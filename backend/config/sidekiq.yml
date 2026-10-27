@@ -1,0 +1,5 @@
+# Run with: bundle exec sidekiq  (reads REDIS_URL, default redis://localhost:6379/0)
+:concurrency: <%= ENV.fetch("SIDEKIQ_CONCURRENCY", 5) %>
+:queues:
+  - default
+  - mailers

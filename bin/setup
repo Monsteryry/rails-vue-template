@@ -3,9 +3,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-docker compose up -d --wait db
+docker compose up -d --wait db redis
 
 (cd backend && bundle install && bin/rails db:prepare)
 (cd frontend && npm install)
 
-echo "Done. Run bin/dev to start Rails (:3000) and Vite (:5173)."
+echo "Done. Run bin/dev to start Rails (:3000), Sidekiq and Vite (:5173)."

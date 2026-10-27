@@ -19,7 +19,9 @@ onMounted(async () => {
     <h2>Backend status</h2>
     <p v-if="health">
       <strong>{{ health.status }}</strong> · Rails {{ health.rails }}<br />
-      <small>{{ health.database }}</small>
+      <small>{{ health.database }}</small
+      ><br />
+      <small>Redis: {{ health.redis }}</small>
     </p>
     <p v-else-if="error">Could not reach the API: {{ error }}</p>
     <p v-else>Checking…</p>

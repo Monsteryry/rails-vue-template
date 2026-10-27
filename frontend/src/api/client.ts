@@ -20,6 +20,7 @@ export interface Health {
   status: string
   rails: string
   database: string
+  redis: string
 }
 
 export const getHealth = () => apiFetch<Health>('/health')

@@ -1,19 +1,19 @@
 # Rails + Vue template
 
-A starter for full-stack apps: a **Rails 8.1 API** backed by **PostgreSQL** with **UUID primary keys**, and a **Vue 3 + Vite + TypeScript** frontend.
+A starter for full-stack apps: a **Rails 8.1 API** backed by **PostgreSQL** with **UUID primary keys**, **Sidekiq + Redis** for background jobs, caching and Action Cable, and a **Vue 3 + Vite + TypeScript** frontend.
 
 ```
-backend/    Rails API (Ruby 3.3, PostgreSQL, Solid Cache/Queue/Cable)
+backend/    Rails API (Ruby 3.3, PostgreSQL, Sidekiq + Redis)
 frontend/   Vue 3, Vue Router, Pinia, Vitest, ESLint + Oxlint + Prettier
 bin/setup   one-time setup
-bin/dev     runs both apps
+bin/dev     runs Rails, Sidekiq and Vite
 ```
 
 ## Requirements
 
 - Ruby 3.3 (see `backend/.ruby-version`)
 - Node 24 (see `frontend/.nvmrc`; Node 20.19+ also works)
-- Docker, for the local PostgreSQL container (or your own PostgreSQL 13+)
+- Docker, for the local PostgreSQL and Redis containers (or your own PostgreSQL 13+ and Redis)
 - On macOS, `libpq` to build the `pg` gem: `brew install libpq && bundle config build.pg --with-pg-config=$(brew --prefix libpq)/bin/pg_config`
 
 ## Getting started
@@ -25,10 +25,11 @@ bin/dev
 
 - Frontend: http://localhost:5173
 - API: http://localhost:3000/api/health
+- Sidekiq dashboard (development only): http://localhost:3000/sidekiq
 
-Vite proxies `/api/*` to Rails, so the browser talks to one origin and no CORS setup is needed in development. If the ports are taken, run `RAILS_PORT=3100 VITE_PORT=5180 bin/dev`.
+Vite proxies `/api/*` to Rails, so the browser talks to one origin and no CORS setup is needed in development. If the ports are taken, run `RAILS_PORT=3100 VITE_PORT=5180 bin/dev`. If you already run Redis locally on 6379, either use it (no change needed) or start the container on another port with `REDIS_PORT=6380 REDIS_URL=redis://localhost:6380/0 bin/dev`.
 
-Database settings come from `DATABASE_*` env vars (see `.env.example`); the defaults match `docker-compose.yml`.
+Database settings come from `DATABASE_*` env vars and Redis from `REDIS_URL` (see `.env.example`); the defaults match `docker-compose.yml`.
 
 ## UUID primary keys
 
@@ -56,6 +57,16 @@ How it is wired:
 
 When writing a migration by hand, pass `id: :uuid` to `create_table` and `type: :uuid` to `references`.
 
+## Background jobs, cache and Action Cable
+
+Redis backs all three:
+
+- **Active Job → Sidekiq** (`config.active_job.queue_adapter = :sidekiq` in `config/application.rb`). Queues and concurrency live in `config/sidekiq.yml`; `bin/dev` runs a Sidekiq process. Try it with `ExampleJob.perform_later("hello")` from `bin/rails console`. Tests use the in-memory `:test` adapter.
+- **Rails.cache → Redis** in production (`config/environments/production.rb`). Development keeps the in-memory store; toggle caching with `bin/rails dev:cache`.
+- **Action Cable → Redis** in development and production (`config/cable.yml`), so broadcasts from jobs reach connected clients.
+
+For recurring jobs, add a scheduler such as [sidekiq-cron](https://github.com/sidekiq-cron/sidekiq-cron).
+
 ## Tests and linting
 
 ```bash
@@ -74,4 +85,4 @@ GitHub Actions (`.github/workflows/ci.yml`) runs all of these on every push and 
 
 ## Production
 
-`backend/Dockerfile` builds the Rails API. Set `DATABASE_URL`, plus `CACHE_DATABASE_URL`, `QUEUE_DATABASE_URL` and `CABLE_DATABASE_URL` for the Solid Cache/Queue/Cable databases, and `SECRET_KEY_BASE` or `RAILS_MASTER_KEY`. `npm run build` in `frontend/` produces static files in `frontend/dist` to host on any static host or CDN, with `/api` routed to the Rails service.
+`backend/Dockerfile` builds the Rails API. Set `DATABASE_URL`, `REDIS_URL`, and `SECRET_KEY_BASE` or `RAILS_MASTER_KEY`. Run the same image a second time as the worker with `bundle exec sidekiq`. Protect `/sidekiq` with authentication before mounting it outside development. `npm run build` in `frontend/` produces static files in `frontend/dist` to host on any static host or CDN, with `/api` routed to the Rails service.
