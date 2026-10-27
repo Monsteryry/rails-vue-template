@@ -58,7 +58,7 @@ bin/docker down                                 # stop (data stays in Docker vol
 Requirements:
 
 - Ruby 3.3 (see `backend/.ruby-version`)
-- Node 24 (see `frontend/.nvmrc`; Node 20.19+ also works)
+- Node 24 (see `frontend/.nvmrc`; Node 22.22+ also works)
 - Docker, for the local PostgreSQL and Redis containers (or your own PostgreSQL 13+ and Redis)
 - On macOS, `libpq` to build the `pg` gem: `brew install libpq && bundle config build.pg --with-pg-config=$(brew --prefix libpq)/bin/pg_config`
 
