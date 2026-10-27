@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Rename the app in one step, e.g. after "Use this template":
+#   bin/rename my_app
+# Changes the Rails module (MyApp), database names (my_app_development, ...), Action Cable
+# channel prefixes, the docker-dev project name (my-app-dev), the dev container name and the
+# page title. Safe to run again later with another name. Needs only bash and perl.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+new="${1:-}"
+if [[ ! "$new" =~ ^[a-z][a-z0-9_]*[a-z0-9]$ ]]; then
+  echo "Usage: bin/rename <snake_case_name>   (e.g. bin/rename my_app)" >&2
+  exit 1
+fi
+case "$new" in
+  rails | test | application | app | active_record | action_view)
+    echo "'$new' clashes with Rails names; pick something more specific." >&2
+    exit 1
+    ;;
+esac
+
+# Current names, read from the files themselves so renaming twice works.
+old_module=$(perl -ne 'print $1 and exit if /^module (\w+)/' backend/config/application.rb)
+old_db=$(perl -ne 'print $1 and exit if /database: (\w+)_test\b/' backend/config/database.yml)
+old_project=$(perl -ne 'print $1 and exit if /COMPOSE_PROJECT_NAME:-([a-z0-9_-]+)\}/' docker-dev/docker-compose.yml)
+
+new_module=$(perl -e 'print join "", map { ucfirst } split /_/, $ARGV[0]' "$new")
+new_title=$(perl -e 'print join " ", map { ucfirst } split /_/, $ARGV[0]' "$new")
+new_project="$(tr '_' '-' <<<"$new")-dev"
+
+if [ -z "$old_module" ] || [ -z "$old_db" ] || [ -z "$old_project" ]; then
+  echo "Couldn't find the current names (module '$old_module', db '$old_db', project '$old_project')." >&2
+  exit 1
+fi
+
+# replace <from-regex> <to> <files...>   ($1, $2 in <to> refer to the regex's groups)
+replace() {
+  local from="$1" to="$2"
+  shift 2
+  FROM="$from" TO="$to" perl -pi -e '
+    s{$ENV{FROM}}{
+      my @groups = ($1, $2, $3);
+      (my $out = $ENV{TO}) =~ s/\$(\d)/$groups[$1 - 1]/g;
+      $out;
+    }ge
+  ' "$@"
+}
+
+replace "\\bmodule ${old_module}\\b" "module ${new_module}" backend/config/application.rb
+replace "\\b${old_db}_(development|test|production)\\b" "${new}_\$1" \
+  backend/config/database.yml backend/config/cable.yml .env.example
+replace "\\b${old_project}\\b" "${new_project}" docker-dev/docker-compose.yml docker-dev/.env.example
+if [ -f docker-dev/.env ]; then
+  replace "^COMPOSE_PROJECT_NAME=.*" "COMPOSE_PROJECT_NAME=${new_project}" docker-dev/.env
+fi
+replace '^(  "name": )"[^"]*"' "\$1\"${new_title}\"" .devcontainer/devcontainer.json
+replace "<title>[^<]*</title>" "<title>${new_title}</title>" frontend/index.html
+
+cat <<EOF
+Renamed:
+  Rails module      ${old_module} -> ${new_module}
+  Databases         ${old_db}_* -> ${new}_*
+  docker-dev        ${old_project} -> ${new_project}
+  Dev container     "${new_title}", page title "${new_title}"
+
+Next:
+  - Run bin/setup (or rebuild the dev container) to create the new databases.
+    Data in the old ${old_db}_* databases isn't copied.
+  - Update README.md and the "Project-specific notes" in AGENTS.md for your project.
+EOF
