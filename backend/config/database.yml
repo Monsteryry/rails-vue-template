@@ -1,0 +1,40 @@
+# PostgreSQL. Versions 13+ are required (gen_random_uuid() is built in).
+# Connection settings come from env vars; defaults match docker-compose.yml.
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  host: <%= ENV.fetch("DATABASE_HOST", "localhost") %>
+  port: <%= ENV.fetch("DATABASE_PORT", 5432) %>
+  username: <%= ENV.fetch("DATABASE_USERNAME", "postgres") %>
+  password: <%= ENV.fetch("DATABASE_PASSWORD", "postgres") %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+
+development:
+  <<: *default
+  database: <%= ENV.fetch("DATABASE_NAME", "app_development") %>
+
+test:
+  <<: *default
+  database: app_test
+
+# In production set DATABASE_URL (it overrides the primary connection settings).
+production:
+  primary: &primary_production
+    <<: *default
+    url: <%= ENV["DATABASE_URL"] %>
+    database: app_production
+  cache:
+    <<: *primary_production
+    url: <%= ENV["CACHE_DATABASE_URL"] %>
+    database: app_production_cache
+    migrations_paths: db/cache_migrate
+  queue:
+    <<: *primary_production
+    url: <%= ENV["QUEUE_DATABASE_URL"] %>
+    database: app_production_queue
+    migrations_paths: db/queue_migrate
+  cable:
+    <<: *primary_production
+    url: <%= ENV["CABLE_DATABASE_URL"] %>
+    database: app_production_cable
+    migrations_paths: db/cable_migrate

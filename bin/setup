@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# One-time setup: start Postgres, install deps, prepare the database.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+docker compose up -d --wait db
+
+(cd backend && bundle install && bin/rails db:prepare)
+(cd frontend && npm install)
+
+echo "Done. Run bin/dev to start Rails (:3000) and Vite (:5173)."
